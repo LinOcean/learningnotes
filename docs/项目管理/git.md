@@ -813,6 +813,825 @@ index ec92773..6af2e38 100644
 
 ```
 
+### 暂存区恢复成HEAD
+
+```shell
+$ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   index.html
+        modified:   readme.md
+        modified:   styles/style.css
+$ git reset HEAD # 这里不添加具体的文件
+Unstaged changes after reset:
+M       index.html
+M       readme.md
+M       styles/style.css
+
+$ git status # 查看状态发现已经恢复
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+        modified:   readme.md
+        modified:   styles/style.css
+
+no changes added to commit (use "git add" and/or "git commit -a")
+$ git diff --cached # 比价暂存区跟HEAD的差异
+
+```
+
+小结：git reset 有三个参数
+--soft 这个只是把 HEAD 指向的 commit 恢复到你指定的 commit，暂存区 工作区不变
+--hard 这个是 把 HEAD， 暂存区， 工作区 都修改为 你指定的 commit 的时候的文件状态
+--mixed 这个是不加时候的默认参数，把 HEAD，暂存区 修改为 你指定的 commit 的时候的文件状态，工作区保持不变
+
+### 工作区文件恢复和暂存区一样
+
+```shell
+$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+        modified:   readme.md
+        modified:   styles/style.css
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+$ git add index.html # 将该文件纳入暂存区
+$ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   index.html
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   readme.md
+        modified:   styles/style.css
+$ vi index.html # 再次修改该文件
+$ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   index.html
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+        modified:   readme.md
+        modified:   styles/style.css
+
+$ git diff -- index.html # 比较工作区跟暂存区的差异
+diff --git a/index.html b/index.html
+index 5f789c6..b300eb9 100644
+--- a/index.html
++++ b/index.html
+@@ -14,7 +14,7 @@
+         <div class="accordion"><h1>Terminologys</h1></div>
+             <div class="panel">
+                 <ol>
+-                    <li>bare repository</li>
++                    <li>裸仓库</li>
+                     <li></li>
+                     <li></li>
+                     <li></li>
+$ git checkout -- index.html # 恢复工作区跟暂存区一致
+$ git diff -- index.html # 再进行比较，发现已经不存在差异
+```
+
+### 取消暂存区部分文件的修改
+
+```shell
+$ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   index.html
+        modified:   readme.md
+        modified:   styles/style.css
+$ git reset HEAD -- styles/style.css # 指定文件恢复到HEAD 可接多个文件
+Unstaged changes after reset:
+M       styles/style.css
+$ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   index.html
+        modified:   readme.md
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   styles/style.css
+$ git reset HEAD -- index.html readme.md
+Unstaged changes after reset:
+M       index.html
+M       readme.md
+M       styles/style.css
+
+$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+        modified:   readme.md
+        modified:   styles/style.css
+
+no changes added to commit (use "git add" and/or "git commit -a")
+        
+```
+
+### 清除最近几次commit
+
+```shell
+$ git log
+commit 7866712654e93d3d29fd85d8839f5641fc934679 (HEAD -> temp)
+Author: alai <linmiaolai@qq.com>
+Date:   Wed Jun 24 07:59:49 2020 +0800
+
+    test --hard
+
+commit 455b5e8beb4cd17ad3a6986da5c26926e5d915a0
+Author: alai <linmiaolai@qq.com>
+Date:   Sun Jun 14 20:15:09 2020 +0800
+
+    Add test
+
+commit e3c79a061d6f8cbf7beddd9eae7612d78023f05d
+Author: alai <linmiaolai@qq.com>
+Date:   Fri Jun 12 21:52:49 2020 +0800
+
+    Add refering project
+# 假如现在想让工作区，暂存区和HEAD恢复到指定的commit
+$ git reset --hard 455b5e8be # 指定想要恢复到的commit id
+HEAD is now at 455b5e8 Add test
+$ git log # 查看历史已经发生更改
+commit 455b5e8beb4cd17ad3a6986da5c26926e5d915a0 (HEAD -> temp)
+Author: alai <linmiaolai@qq.com>
+Date:   Sun Jun 14 20:15:09 2020 +0800
+
+    Add test
+
+commit e3c79a061d6f8cbf7beddd9eae7612d78023f05d
+Author: alai <linmiaolai@qq.com>
+Date:   Fri Jun 12 21:52:49 2020 +0800
+
+
+```
+
+### 查看不同提交中指定文件差异
+
+```shell
+# 查看不同分支之间的差异
+$ git diff branchName1 branchName2
+# 不同分支间，同一个文件的差异
+$ git diff commitId1 commitId2 -- filePath/fileName
+# 不同分支间，同一个文件的差异
+$ git diff branch1 branch2 -- filePath/fileName
+```
+
+### 删除文件
+
+```shell
+$ git rm fileName
+```
+
+### 暂时保存工作区的状态
+
+```shell
+$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+
+no changes added to commit (use "git add" and/or "git commit -a")
+$ git stash # 将工作区的东西暂存起来
+Saved working directory and index state WIP on master: d9bfd4c 修改
+$ git stash list # 查看
+stash@{0}: WIP on master: d9bfd4c 修改
+$ git status # 此时显示工作区是干净的
+On branch master
+nothing to commit, working tree clean
+$ git stash apply # 引用存储起来的修改
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+
+no changes added to commit (use "git add" and/or "git commit -a")
+$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   index.html
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+```
+
+`stash apply`跟`stash pop`的区别：可以理解为存储下的变更是保存在栈中，`apply`命令为应用栈中的某一次存储，应用完后还保留下来，可以通过`stash list`查看到，`stash pop`为弹栈，`stash list`查不到了
+
+### 指定不需要git管理的文件
+
+```shell
+$ git status # 此时查看出 doc/文件夹下有未被管理的文件夹及下面的文件
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        doc/
+
+nothing added to commit but untracked files present (use "git add" to trac
+$ vi .gitignore #  创建这个文件，并在这文件中输入 doc
+$ git status # 再次查看发现 doc文件夹已经被忽略了
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .gitignore
+
+```
+
+假如`.gitignore`文件中有两个值`doc/`跟`doc`，两者的区别是：`doc/`表示，`doc`文件下的文件被git忽略，但如果有个文件名为`doc`的文件，则依然会被git管理到。而`doc`则表示，无论是doc文件还是doc文件夹及子下面的文件，都会被git忽略
+
+### 仓库备份
+
+场景协议：
+
+![](../pic/manage/常用协议.png)
+
+```shell
+$ cd backup/ # 进入到需要备份的目录
+# 使用哑协议 --bare表示不克隆工作区 重命名为 ya.git
+$ git clone --bare /d/votal/docs/项目管理/practice/simple/.git ya.git 
+Cloning into 'ya.git'...
+done.
+
+# 使用智能协议克隆，可以看到进度
+$ git clone --bare file:///d/votal/docs/项目管理/practice/simple/.git zhineng.git
+Cloning into bare repository 'zhineng.git'...
+remote: Enumerating objects: 43, done.
+remote: Counting objects: 100% (43/43), done.
+remote: Compressing objects: 100% (32/32), done.
+remote: Total 43 (delta 13), reused 0 (delta 0)
+Receiving objects: 100% (43/43), 23.55 KiB | 2.62 MiB/s, done.
+Resolving deltas: 100% (13/13), done.
+
+
+```
+
+### 本地仓库关联到远方仓库
+
+```shell
+$ git remote -v
+zhineng file:///d/votal/docs/项目管理/practice/backup/zhineng.git (fetch) # 这里表示的是本地备份下来的远端仓库
+zhineng file:///d/votal/docs/项目管理/practice/backup/zhineng.git (push)
+
+# 这里表示新增一个名称为git_learing的远端仓库 地址放在后面
+$ git remote add git_learing git@github.com:LinOcean/git_learning.git 
+$ git remote -v # 这里可以查看到远端的仓库
+git_learing     git@github.com:LinOcean/git_learning.git (fetch)
+git_learing     git@github.com:LinOcean/git_learning.git (push)
+zhineng file:///d/votal/docs/项目管理/practice/backup/zhineng.git (fetch)
+zhineng file:///d/votal/docs/项目管理/practice/backup/zhineng.git (push)
+
+$ git push git_learing --all # 表示将本地所有分支都push到远端 git_learing表示远端仓库名称
+Warning: Permanently added the RSA host key for IP address '140.82.114.4' to the list of known hosts.
+Enumerating objects: 43, done.
+Counting objects: 100% (43/43), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (32/32), done.
+Writing objects: 100% (43/43), 23.55 KiB | 1.57 MiB/s, done.
+Total 43 (delta 13), reused 0 (delta 0)
+remote: Resolving deltas: 100% (13/13), done.
+To github.com:LinOcean/git_learning.git
+ * [new branch]      new_refering -> new_refering # 这里看到这两个分支已经push成功了
+ * [new branch]      temp -> temp
+ ! [rejected]        master -> master (fetch first) # master分支被拒接，提示要先pull在push
+error: failed to push some refs to 'git@github.com:LinOcean/git_learning.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+# 上述看到操作失败的原因是 远端的仓库有文件，要先更新到本地来
+
+$ git fetch git_learing master # 从远端 git_learing fetch到本地的master
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (3/3), 1.17 KiB | 50.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+ * branch            master     -> FETCH_HEAD
+ * [new branch]      master     -> git_learing/master
+ $ gitk -all # 查看分支状况
+ $ git branch -va # 查看所有的分支 包括远端的分支
+* master                           15ea60c update index.html
+  new_refering                     7bf67c6 refering change
+  temp                             455b5e8 Add test
+  remotes/git_learing/master       339a91d Initial commit
+  remotes/git_learing/new_refering 7bf67c6 refering change
+  remotes/git_learing/temp         455b5e8 Add test
+# 从上面的查看和下面的图片可以看出，远端的master分支跟本地的master没有指向同一个commit
+$ git checkout master # 切换到本地的master
+Already on 'master'
+# --allow-unrelated-histories 表示不想干的 从下图看出远端的master跟本地master不相干
+$ git merge --allow-unrelated-histories git_learing/master # 表示将远端的master跟本地的master相merge
+Merge made by the 'recursive' strategy.
+ LICENSE | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+ create mode 100644 LICENSE
+$ git push git_learing master # push主干到远端的git_learing
+Enumerating objects: 28, done.
+Counting objects: 100% (28/28), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (19/19), done.
+Writing objects: 100% (26/26), 22.18 KiB | 1.85 MiB/s, done.
+Total 26 (delta 7), reused 0 (delta 0)
+remote: Resolving deltas: 100% (7/7), done.
+To github.com:LinOcean/git_learning.git
+   339a91d..c6c6a11  master -> master
+$ gitk --all # 查看 出现下面第3幅图的情况
+```
+
+![](../pic/manage/remote.png)
+
+![](../pic/manage/remote2.png)
+
+![](../pic/manage/remote2.png)
+
+**总结：**
+git remote -v 查看远程版本库信息
+git remote add githup <url> 添加githup远程版本库
+git fetch githup 拉取远程版本库
+git merge -h 查看合并帮助信息
+git merge --allow-unrelated-histories githup/master 合并githup上的master分支（两分支不是父子关系，所以合并需要添加 --allow-unrelated-histories）
+git push githup 推送同步到githup仓库
+
+### 不同人修改了不同文件
+
+成员A从clone远端仓库
+
+```shell
+$ git branch -av # 查看分支信息
+* master                                  c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/HEAD                     -> origin/master
+  remotes/origin/feature/add_git_commands c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/new_refering             7bf67c6 refering change
+  remotes/origin/temp                     455b5e8 Add test
+ 
+ # 基于远端分支origin/feature/add_git_commands 创建一个与之关联的本地分支 feature/add_git_commands 并切换到该分支
+ $ git checkout -b feature/add_git_commands origin/feature/add_git_commands
+Switched to a new branch 'feature/add_git_commands'
+Branch 'feature/add_git_commands' set up to track remote branch 'feature/add_git_commands' from 'origin'. 
+$ git branch -v
+* feature/add_git_commands c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+$ vi readme.md
+$ git add -u
+$ git status
+On branch feature/add_git_commands
+Your branch is up to date with 'origin/feature/add_git_commands'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        modified:   readme.md
+$ git commit -m "add git commands description in readme"
+[feature/add_git_commands 7febef6] add git commands description in readme
+ 1 file changed, 2 insertions(+)
+ $ git push # 可以直接使用push命令
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 329 bytes | 329.00 KiB/s, done.
+Total 3 (delta 1), reused 0 (delta 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To github.com:LinOcean/git_learning.git
+   c6c6a11..7febef6  feature/add_git_commands -> feature/add_git_commands # 这里显示了关联的分支
+
+```
+
+![](../pic/manage/remote4.png)
+
+成员B本身已经存在仓库
+
+```shell
+$ git branch -av
+* master                           c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  new_refering                     7bf67c6 refering change
+  temp                             455b5e8 Add test
+  remotes/git_learing/master       c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/git_learing/new_refering 7bf67c6 refering change
+  remotes/git_learing/temp         455b5e8 Add test
+$ git fetch git_learing
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 1), reused 3 (delta 1), pack-reused 0
+Unpacking objects: 100% (3/3), 309 bytes | 61.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+ * [new branch]      feature/add_git_commands -> git_learing/feature/add_git_commands # 这里把新分支fetch下来
+ $ git branch -av
+* feature/add_git_commands                7febef6 add git commands description in readme
+  master                                  c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/HEAD                     -> origin/master
+  remotes/origin/feature/add_git_commands 7febef6 add git commands description in readme
+  remotes/origin/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/new_refering             7bf67c6 refering change
+  remotes/origin/temp                     455b5e8 Add test
+# 要创建与其相关联的本地分支
+$ git checkout -b feature/add_git_commands git_learing/feature/add_git_commands
+Switched to a new branch 'feature/add_git_commands'
+Branch 'feature/add_git_commands' set up to track remote branch 'feature/add_git_commands' from 'git_learing'.
+$ git branch -av
+* feature/add_git_commands                7febef6 add git commands description in readme
+  master                                  c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/HEAD                     -> origin/master
+  remotes/origin/feature/add_git_commands 7febef6 add git commands description in readme
+  remotes/origin/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/new_refering             7bf67c6 refering change
+  remotes/origin/temp                     455b5e8 Add test
+$ vi index.html
+$ git add -u
+$ git commit -m "add git add command in index"
+[feature/add_git_commands 67de72d] add git add command in index
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+$ gitk --all
+# 可以看到成员A的commit跟成员B的commit是一个父子关系，此时如果成员B push到远端 是没有任何问题的
+```
+
+![](../pic/manage/remote5.png)
+
+下面切换回成员A（也就是在成员Bcommit之前，成员A再进行修改）
+
+```shell
+$ vi readme.md
+$ git commit -am 'Fix readme'
+[feature/add_git_commands 15847b8] Fix readme
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ $ git push
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 298 bytes | 298.00 KiB/s, done.
+Total 3 (delta 2), reused 0 (delta 0)
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To github.com:LinOcean/git_learning.git
+   7febef6..15847b8  feature/add_git_commands -> feature/add_git_commands
+
+```
+
+再切换回成员B，此时成员B要push
+
+```shell
+$ git status
+On branch feature/add_git_commands
+Your branch is ahead of 'origin/feature/add_git_commands' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+$ git push
+To github.com:LinOcean/git_learning.git
+ ! [rejected]        feature/add_git_commands -> feature/add_git_commands (fetch first)
+error: failed to push some refs to 'git@github.com:LinOcean/git_learning.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+# 很明显此时会报错，因为远端仓库跟本地仓库已经不是fast-forwards的关系
+$ git fetch # 先更新
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (1/1), done.
+remote: Total 3 (delta 2), reused 3 (delta 2), pack-reused 0
+Unpacking objects: 100% (3/3), 278 bytes | 55.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+   7febef6..15847b8  feature/add_git_commands -> origin/feature/add_git_commands
+$ git branch -av
+# [ahead 1, behind 1] 这里看到本地分支的commit不是最新的
+* feature/add_git_commands                67de72d [ahead 1, behind 1] add git add command in index
+  master                                  c6c6a11 Merge remote-tracking branch 'git_learing/master' 
+  remotes/origin/HEAD                     -> origin/master
+  remotes/origin/feature/add_git_commands 15847b8 Fix readme # 这个分支的指向发生了改变
+  remotes/origin/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/new_refering             7bf67c6 refering change
+  remotes/origin/temp                     455b5e8 Add test
+$ git merge git_learning/feature/add_git_commands # 表示将远端的commit与本地的commit进行合并
+merge: git_learning/feature/add_git_commands - not something we can merge
+ readme.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ $ git push # 这样就可以成功推送到远端仓库
+Enumerating objects: 9, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 568 bytes | 568.00 KiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0)
+remote: Resolving deltas: 100% (3/3), completed with 2 local objects.
+To github.com:LinOcean/git_learning.git
+   15847b8..927a4a7  feature/add_git_commands -> feature/add_git_commands
+
+
+```
+
+### 不同人修改同文件不同区域
+
+以下为成员A，先拉去最新代码
+
+```shell
+$ git branch -av
+* feature/add_git_commands                     15847b8 Fix readme
+  master                                       c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  new_refering                                 7bf67c6 refering change
+  temp                                         455b5e8 Add test
+  remotes/git_learing/feature/add_git_commands 15847b8 Fix readme
+  remotes/git_learing/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/git_learing/new_refering             7bf67c6 refering change
+  remotes/git_learing/temp   
+$ git pull
+remote: Enumerating objects: 9, done.
+remote: Counting objects: 100% (8/8), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 5 (delta 3), reused 5 (delta 3), pack-reused 0
+Unpacking objects: 100% (5/5), 548 bytes | 14.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+   15847b8..927a4a7  feature/add_git_commands -> git_learing/feature/add_git_commands
+Updating 15847b8..927a4a7
+Fast-forward
+ index.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+# 修改文件
+$ vi index.html 
+# 提交文件
+$ git commit -am 'Add non fast forward'
+[feature/add_git_commands 640ed60] Add non fast forward
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+```
+
+以下为成员B
+
+```shell
+$ git  branch -av
+* feature/add_git_commands                927a4a7 Merge remote-tracking branch 'remotes/origin/feature/add_git_commands' into feature/add_git_commands
+  master                                  c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/HEAD                     -> origin/master
+  remotes/origin/feature/add_git_commands 927a4a7 Merge remote-tracking branch 'remotes/origin/feature/add_git_commands' into feature/add_git_commands
+  remotes/origin/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/origin/new_refering             7bf67c6 refering change
+  remotes/origin/temp                     455b5e8 Add test
+  
+$ git pull
+Already up to date.  
+# 这里跟成员A修改了同一文件 但不同区域
+$ vi index.html 
+$ git commit -am 'Add commit command'
+[feature/add_git_commands a2df06a] Add commit command
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+$ git push # 这里比成员A先推送到了远端仓库
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 299 bytes | 299.00 KiB/s, done.
+Total 3 (delta 2), reused 0 (delta 0)
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To github.com:LinOcean/git_learning.git
+   927a4a7..a2df06a  feature/add_git_commands -> feature/add_git_commands
+
+```
+
+回去成员A，要将代码push
+
+```shell
+$ git push
+To github.com:LinOcean/git_learning.git
+ ! [rejected]        feature/add_git_commands -> feature/add_git_commands (fetch first)
+error: failed to push some refs to 'git@github.com:LinOcean/git_learning.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+# 会被远端拒绝 因为已经有成员B push
+$ git fetch # 这里也可以直接pull
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (1/1), done.
+remote: Total 3 (delta 2), reused 3 (delta 2), pack-reused 0
+Unpacking objects: 100% (3/3), 279 bytes | 46.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+   927a4a7..a2df06a  feature/add_git_commands -> git_learing/feature/add_git_commands
+$ git branch -av
+* feature/add_git_commands                     640ed60 [ahead 1, behind 1] Add non fast forward
+  master                                       c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  new_refering                                 7bf67c6 refering change
+  temp                                         455b5e8 Add test
+  remotes/git_learing/feature/add_git_commands a2df06a Add commit command
+  remotes/git_learing/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/git_learing/new_refering             7bf67c6 refering change
+  remotes/git_learing/temp                     455b5e8 Add test
+  
+$ git merge git_learing/feature/add_git_commands # 执行该命令后，会弹出编辑commit message的窗口，表示git已经自动帮我们对index文件进行了合并
+Auto-merging index.html
+Merge made by the 'recursive' strategy.
+ index.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+$ cat index.html # 可以查看到该文件已经被更新 合并
+$ gitk --all 
+$ git branch -av
+# 可以看到这里的状态发生了改变
+* feature/add_git_commands                     1b75367 [ahead 2] Merge remote-tracking branch 'git_learing/feature/add_git_commands' into feature/add_git_commands
+  master                                       c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  new_refering                                 7bf67c6 refering change
+  temp                                         455b5e8 Add test
+  remotes/git_learing/feature/add_git_commands a2df06a Add commit command
+  remotes/git_learing/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/git_learing/new_refering             7bf67c6 refering change
+  remotes/git_learing/temp                     455b5e8 Add test
+$ git push
+Enumerating objects: 10, done.
+Counting objects: 100% (10/10), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 640 bytes | 640.00 KiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0)
+remote: Resolving deltas: 100% (4/4), completed with 2 local objects.
+To github.com:LinOcean/git_learning.git
+   a2df06a..1b75367  feature/add_git_commands -> feature/add_git_commands
+# 这里状态又发生了改变   
+$ git branch -av
+* feature/add_git_commands                     1b75367 Merge remote-tracking branch 'git_learing/feature/add_git_commands' into feature/add_git_commands
+  master                                       c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  new_refering                                 7bf67c6 refering change
+  temp                                         455b5e8 Add test
+  remotes/git_learing/feature/add_git_commands 1b75367 Merge remote-tracking branch 'git_learing/feature/add_git_commands' into feature/add_git_commands
+  remotes/git_learing/master                   c6c6a11 Merge remote-tracking branch 'git_learing/master'
+  remotes/git_learing/new_refering             7bf67c6 refering change
+  remotes/git_learing/temp                     455b5e8 Add test
+   
+```
+
+![](../pic/manage/修改同一文件.png)
+
+### 不同人修改了同一文件的同一区域
+
+成员A
+
+```shell
+$ vi index.html
+$ git commit -am 'Add mv and rm commands'
+[feature/add_git_commands 2aea406] Add mv and rm commands
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+$ git push # 修改完后就推送到远端了
+```
+
+成员B
+
+```shell
+$ vi index.html # 这里修改了跟成员A的同一区域
+$ git commit -am 'Add stash and log commands'
+[feature/add_git_commands b45ffdb] Add stash and log commands
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+$ git push
+To github.com:LinOcean/git_learning.git
+ ! [rejected]        feature/add_git_commands -> feature/add_git_commands (fetch first)
+error: failed to push some refs to 'git@github.com:LinOcean/git_learning.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+$ git pull
+remote: Enumerating objects: 10, done.
+remote: Counting objects: 100% (10/10), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 6 (delta 4), reused 6 (delta 4), pack-reused 0
+Unpacking objects: 100% (6/6), 604 bytes | 54.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+   1b75367..66195a9  feature/add_git_commands -> git_learing/feature/add_git_commands
+Auto-merging index.html
+CONFLICT (content): Merge conflict in index.html # 自动merge 但有冲突 并指明了冲突的文件
+Automatic merge failed; fix conflicts and then commit the result.
+$ vi index.html 
+$ git status # 手动处理后查看状态
+On branch feature/add_git_commands
+Your branch and 'git_learing/feature/add_git_commands' have diverged,
+and have 1 and 2 different commits each, respectively.
+  (use "git pull" to merge the remote branch into yours)
+
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+        both modified:   index.html
+$ git commit -am 'Resolved confilict'
+[feature/add_git_commands 3259dc3] Resolved confilict
+$ git status
+On branch feature/add_git_commands
+Your branch is ahead of 'git_learing/feature/add_git_commands' by 2 commits.
+  (use "git push" to publish your local commits)
+$ git push
+Enumerating objects: 10, done.
+Counting objects: 100% (10/10), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 601 bytes | 601.00 KiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0)
+remote: Resolving deltas: 100% (4/4), completed with 2 local objects.
+To github.com:LinOcean/git_learning.git
+   66195a9..3259dc3  feature/add_git_commands -> feature/add_git_commands
+$ gitk --all
+```
+
+![](../pic/manage/merge.png)
+
+![](../pic/manage/merge2.png)
+
+![](../pic/manage/merge3.png)
+
+### 同时变更了文件名跟文件内容
+
+成员A更改文件名，并先提交到远端
+
+```shell
+$ git mv index.html index.htm
+$ git commit -am 'mv index name'
+[feature/add_git_commands 9127448] mv index name
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename index.html => index.htm (100%)
+$ git push
+Enumerating objects: 3, done.
+Counting objects: 100% (3/3), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (2/2), 216 bytes | 216.00 KiB/s, done.
+Total 2 (delta 1), reused 0 (delta 0)
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To github.com:LinOcean/git_learning.git
+   b1928fc..9127448  feature/add_git_commands -> feature/add_git_commands
+
+```
+
+成员B更改文件该文件内容，并将其push
+
+```shell
+$ vi index.html
+$ git commit -am 'change index'
+[feature/add_git_commands bfb4b9b] change index
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+$ git push
+To github.com:LinOcean/git_learning.git
+ ! [rejected]        feature/add_git_commands -> feature/add_git_commands (fetch first)
+error: failed to push some refs to 'git@github.com:LinOcean/git_learning.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+$ git pull # 执行该命令后，弹出合并 要合并的message编辑页面 也就是git能识别到index.html更改名字了
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (1/1), done.
+remote: Total 2 (delta 1), reused 2 (delta 1), pack-reused 0
+Unpacking objects: 100% (2/2), 196 bytes | 65.00 KiB/s, done.
+From github.com:LinOcean/git_learning
+   b1928fc..9127448  feature/add_git_commands -> git_learing/feature/add_git_commands
+Merge made by the 'recursive' strategy.
+ index.html => index.htm | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename index.html => index.htm (100%)
+
+```
+
+
+
+## github使用
+
+1. 进入高级搜索页面：https://github.com/search/advanced
+2. 搭建个人博客：搜索仓库：barryclark/jekyll-now
+
 
 
 ## 基本命令
