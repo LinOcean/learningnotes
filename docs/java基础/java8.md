@@ -1520,3 +1520,147 @@ public class Application {
 ```
 
 在执行任务适当的情况下，以上两个版本的在时间上的时间效果是不分伯仲的。究其原因都一样：它们内部采用的是同样的通用线程池，默认都使用固定数目的线程，具体线程数取决于Runtime.getRuntime().availableProcessors()的返回值。随着执行任务的增多(这里是商店的增多)，ompletableFuture具有一定的优势，因为它允许你对执行器（ Executor）进行配置，尤其是线程池的大小，让它以更适合应  用需求的方式进行配置，满足程序的要求，而这是并行流API无法提供的。
+
+### 使用定制的执行器
+
+确定线程池的大小
+
+> 线程池大小与处理器的利用率之比可以使用下面的公式进行估算：
+> Nthreads = NCPU * UCPU * (1 + W/C)
+> 其中：
+>  NCPU是处理器的核的数目，可以通过Runtime.getRuntime().availableProcessors()得到
+>  UCPU是期望的CPU利用率（该值应该介于0和1之间）
+>  W/C是等待时间与计算时间的比率  
+
+```java
+public class Application {
+    private List<String> findPrices(String product) {
+        List<Shop> shops = Arrays.asList(new Shop("BestPrice"),
+                new Shop("LetsSaveBig"),
+                new Shop("MyFavoriteShop"),
+                new Shop("BuyItAll"));
+        Executor executor = getExecutor(shops); //获取定制的执行器
+        List<CompletableFuture<String>> priceFutures =
+                shops.stream()
+                        .map(shop -> CompletableFuture.supplyAsync(
+                                () -> String.format("%s price is %.2f",
+                                        shop.getName(), shop.getPrice(product)), executor))
+                        .collect(toList());
+        return priceFutures.stream().map(CompletableFuture::join)
+                .collect(Collectors.toList());
+    }
+
+    private Executor getExecutor(List<Shop> shops) {
+        // 创建一个固定大小的线程池
+        return Executors.newFixedThreadPool(Math.min(shops.size(), 100), new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread();
+                thread.setDaemon(true);// 使用守护线程，这种方式不会阻止程序的关停
+                return thread;
+            }
+        });
+    }
+}
+```
+
+正创建的是一个由守护线程构成的线程池。 Java程序无法终止或者退出一个正在运行中的线程，所以最后剩下的那个线程会由于一直等待无法发生的事件而引发问题。与此相反，如果将线程标记为守护进程，意味着程序退出时它也会被回收。这二者之间没有性能上的差异。  
+
+> 并行——使用流还是CompletableFutures？
+> 目前为止，你已经知道对集合进行并行计算有两种方式：要么将其转化为并行流，利用map这样的操作开展工作，要么枚举出集合中的每一个元素，创建新的线程，在CompletableFuture内对其进行操作。后者提供了更多的灵活性，你可以调整线程池的大小，而这能帮助你确保整体的计算不会因为线程都在等待I/O而发生阻塞。
+> 我们对使用这些API的建议如下。
+> ❑ 如果你进行的是计算密集型的操作，并且没有I/O，那么推荐使用Stream接口，因为实
+> 现简单，同时效率也可能是最高的（如果所有的线程都是计算密集型的，那就没有必要
+> 创建比处理器核数更多的线程）。
+> ❑ 反之，如果你并行的工作单元还涉及等待I/O的操作（包括网络连接等待），那么使用
+> CompletableFuture灵活性更好，你可以像前文讨论的那样，依据等待/计算，或者
+> W/C的比率设定需要使用的线程数。这种情况不使用并行流的另一个原因是，处理流的
+> 流水线中如果发生I/O等待，流的延迟特性会让我们很难判断到底什么时候触发了等待。  
+
+
+
+
+
+## 时间与日期API
+
+### LocalDate 和 LocalTime  
+
+```java
+public class Local {
+    public static void main(String[] args) {
+        localDate();
+        localTime();
+    }
+
+    private static void localDate() {
+        LocalDate date = LocalDate.of(2020, 3, 18);
+
+        // LocalDate date = LocalDate.parse("2020-07-12");
+        printLocalDate(date);
+    }
+
+    private static void printLocalDate(LocalDate date) {
+        int year = date.getYear();
+        Month month = date.getMonth();
+        int dayOfMonth = date.getDayOfMonth();
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+        int len = date.lengthOfMonth();
+        System.out.println(date);
+    }
+
+    private static void localTime() {
+//        LocalTime time = LocalTime.parse("13:45:20");
+        LocalTime time = LocalTime.of(13, 45, 20);
+        int hour = time.getHour();
+        int minute = time.getMinute();
+        int second = time.getSecond();
+        System.out.println(time);
+    }
+}
+
+```
+
+### 合并时间和日期
+
+这个复合类名叫`LocalDateTime`，是`LocalDate`和`LocalTime`的合体  
+
+```java
+private static void localDateTime() {
+        LocalDate date = LocalDate.of(2014, Month.MARCH, 18);
+        LocalTime time = LocalTime.of(13, 45, 20);
+        LocalDateTime ldt = LocalDateTime
+                .of(2014, Month.MARCH, 18, 13, 45, 20);
+        LocalDateTime ldt2 = date.atTime(time);
+        LocalDateTime ldt3 = time.atDate(date);
+        LocalDate ld = ldt.toLocalDate();
+        LocalTime t = ldt.toLocalTime();
+    }
+```
+
+### Instant  ,Duration , Period  
+
+作为人，我们习惯于以星期几、几号、几点、几分这样的方式理解日期和时间。毫无疑问，这种方式对于计算机而言并不容易理解。从计算机的角度来看，建模时间最自然的格式是表示一个持续时间段上某个点的单一大整型数。这也是新的`java.time.Instant`类对时间建模的方式，基本上它是以Unix元年时间（传统的设定为`UTC`时区1970年1月1日午夜时分）开始所经历的秒数进行计算。  
+
+`LocalDateTime`和`Instant`是为不同的目的而设计的，一个是为了便于人阅读使用，另一个是为了便于机器处理  
+
+```java
+public class Instants {
+    private void duration() {
+        Duration d1 = Duration.between(time1, time2);
+        Duration d2 = Duration.between(dateTime1, dateTime2);
+        Duration d3 = Duration.between(instant1, instant2);
+        Duration threeMinutes = Duration.ofMinutes(3);
+        Duration threeMinutes2 = Duration.of(3, ChronoUnit.MINUTES);
+    }
+
+    private void period(){
+        Period tenDays = Period.between(LocalDate.of(2014, 3, 8),
+                LocalDate.of(2014, 3, 18));
+        Period tenDays2 = Period.ofDays(10);
+        Period threeWeeks = Period.ofWeeks(3);
+        Period twoYearsSixMonthsOneDay = Period.of(2, 6, 1);
+    }
+}
+```
+
+### 操纵、解析和格式化日期  
