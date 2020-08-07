@@ -32,7 +32,7 @@
   * [https](./docs/安全/https.md)
 * web
 
-  * [nginx](./docs/web相关技术/nginx.md)
+  * [nginx](./docs/nginx.md)
 * 项目工具
 
   * [git](./docs/项目管理/git.md)
